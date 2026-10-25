@@ -433,7 +433,53 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+function convertApplicantsToCSV(applicants: ApplicantRecord[]): string {
+  const headers = [
+    "Applicant ID",
+    "Submission Date",
+    "Full Name",
+    "Email",
+    "Phone (WhatsApp)",
+    "Profile URL",
+    "Years of Experience",
+    "Current Role",
+    "Primary Stack",
+    "30-Day Target Outcome",
+    "Biggest Bottleneck",
+    "Weekly Hours Commitment",
+    "Why You Pitch",
+    "Review Status",
+  ];
+
+  const escapeCSV = (str: string | undefined) => {
+    if (!str) return '""';
+    const clean = str.replace(/"/g, '""').replace(/(\r\n|\n|\r)/gm, " ");
+    return `"${clean}"`;
+  };
+
+  const rows = applicants.map((app) => [
+    escapeCSV(app.id),
+    escapeCSV(new Date(app.createdAt).toLocaleString()),
+    escapeCSV(app.fullName),
+    escapeCSV(app.email),
+    escapeCSV(app.phoneNumber),
+    escapeCSV(app.profileUrl),
+    escapeCSV(app.yearsOfExperience),
+    escapeCSV(app.currentRole),
+    escapeCSV(app.primaryStack),
+    escapeCSV(app.targetOutcome),
+    escapeCSV(app.bottleneck),
+    escapeCSV(app.weeklyHours),
+    escapeCSV(app.whyYou),
+    escapeCSV(app.status.toUpperCase()),
+  ]);
+
+  return [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
+}
+
+export async function GET(req: NextRequest) {
+  const isCSV = req.nextUrl?.searchParams?.get("format") === "csv";
+
   if (isCloudflareD1Configured) {
     try {
       const res = await executeD1Query<Record<string, unknown>>(
@@ -457,6 +503,17 @@ export async function GET() {
           whyYou: String(row.why_you || ""),
           notes: String(row.notes || ""),
         }));
+
+        if (isCSV) {
+          const csvText = convertApplicantsToCSV(formatted);
+          return new NextResponse(csvText, {
+            status: 200,
+            headers: {
+              "Content-Type": "text/csv; charset=utf-8",
+              "Content-Disposition": `attachment; filename="kelvin-mentorship-applicants-${new Date().toISOString().slice(0, 10)}.csv"`,
+            },
+          });
+        }
 
         return NextResponse.json({
           success: true,
