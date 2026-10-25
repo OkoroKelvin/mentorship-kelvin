@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kelvinmentorship.com"),
+  metadataBase: new URL("https://kelvinokoro.com"),
   title: "Grow with Kelvin Okoro | Weekend Mentorship with Java",
   description:
     "Online weekend mentorship with Kelvin Okoro. Get the best foundations and fundamentals in coding, gain crystal-clear direction, and find the inspiration to keep growing in tech.",
