@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /privacy
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://kelvinokoro.com/sitemap.xml

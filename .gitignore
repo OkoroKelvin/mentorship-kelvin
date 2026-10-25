@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+.wrangler/
+.open-next/
 
 # debug
 npm-debug.log*
