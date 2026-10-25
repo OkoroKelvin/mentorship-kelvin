@@ -4,25 +4,10 @@ import React, { useState, useEffect } from "react";
 import HeroSection from "@/components/HeroSection";
 import ApplicationFunnel from "@/components/ApplicationFunnel";
 import Footer from "@/components/Footer";
-import MentorReviewModal from "@/components/MentorReviewModal";
-import { getStoredApplicants } from "@/lib/applicantStore";
 import { Sparkles, Clock, X } from "lucide-react";
 
 export default function Home() {
   const [applyModalOpen, setApplyModalOpen] = useState(false);
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [applicantCount, setApplicantCount] = useState(4);
-
-  // Keep track of applicant count
-  useEffect(() => {
-    const updateCount = () => {
-      const apps = getStoredApplicants();
-      setApplicantCount(apps.length);
-    };
-    updateCount();
-    window.addEventListener("applicants_updated", updateCount);
-    return () => window.removeEventListener("applicants_updated", updateCount);
-  }, []);
 
   // Lock body scroll when apply modal is open
   useEffect(() => {
@@ -36,22 +21,11 @@ export default function Home() {
     };
   }, [applyModalOpen]);
 
-  // Keyboard shortcut: Shift + M to open mentor modal, Escape to close modals
+  // Keyboard shortcut: Escape to close apply modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        if (applyModalOpen) {
-          setApplyModalOpen(false);
-        }
-      } else if (
-        (e.key === "M" || e.key === "m") &&
-        e.shiftKey &&
-        !["INPUT", "TEXTAREA"].includes(
-          (document.activeElement?.tagName as string) || ""
-        )
-      ) {
-        e.preventDefault();
-        setReviewModalOpen((prev) => !prev);
+      if (e.key === "Escape" && applyModalOpen) {
+        setApplyModalOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -120,11 +94,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Mentor Review Drawer / Modal */}
-      <MentorReviewModal
-        isOpen={reviewModalOpen}
-        onClose={() => setReviewModalOpen(false)}
-      />
     </div>
   );
 }

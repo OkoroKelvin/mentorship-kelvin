@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import {
   ApplicantRecord,
@@ -14,7 +13,6 @@ import {
   exportApplicantsToCSV,
 } from "@/lib/applicantStore";
 import {
-  ShieldCheck,
   Search,
   Download,
   ExternalLink,
@@ -44,47 +42,36 @@ function AdminPortalContent() {
   const tokenParam = searchParams.get("token");
 
   const [inputToken, setInputToken] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authError, setAuthError] = useState(false);
+  const validSecret =
+    process.env.NEXT_PUBLIC_ADMIN_SECRET || DEFAULT_ADMIN_SECRET;
+
+  const isAuthenticated = tokenParam === validSecret;
+  const [manualAuthError, setManualAuthError] = useState(false);
+  const authError = manualAuthError || Boolean(tokenParam && tokenParam !== validSecret);
 
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [dataSource, setDataSource] = useState<"supabase" | "local" | "in-memory">("local");
-
-  // Verify token
-  useEffect(() => {
-    const validSecret =
-      process.env.NEXT_PUBLIC_ADMIN_SECRET || DEFAULT_ADMIN_SECRET;
-
-    if (tokenParam === validSecret) {
-      setIsAuthenticated(true);
-    } else if (tokenParam) {
-      setAuthError(true);
-    }
-  }, [tokenParam]);
+  const [dataSource, setDataSource] = useState<
+    "cloudflare-d1" | "supabase" | "local" | "in-memory"
+  >("local");
 
   const handleManualAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    const validSecret =
-      process.env.NEXT_PUBLIC_ADMIN_SECRET || DEFAULT_ADMIN_SECRET;
-
     if (inputToken.trim() === validSecret) {
-      setIsAuthenticated(true);
-      setAuthError(false);
+      setManualAuthError(false);
       router.push(`/admin?token=${encodeURIComponent(inputToken.trim())}`);
     } else {
-      setAuthError(true);
+      setManualAuthError(true);
     }
   };
 
   // Fetch applicants from API & localStorage
-  const loadApplicants = async () => {
+  const refreshApplicants = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch from backend API (which checks Supabase)
       const res = await fetch("/api/apply");
       const data = await res.json();
 
@@ -94,10 +81,7 @@ function AdminPortalContent() {
         setDataSource(data.source || "in-memory");
       }
 
-      // 2. Fetch local storage applicants
       const local = getStoredApplicants();
-
-      // Merge and deduplicate by ID
       const map = new Map<string, ApplicantRecord>();
       serverApplicants.forEach((a) => map.set(a.id, a));
       local.forEach((a) => {
@@ -120,9 +104,52 @@ function AdminPortalContent() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      loadApplicants();
+    if (!isAuthenticated) return;
+    let ignore = false;
+
+    async function fetchData() {
+      try {
+        const res = await fetch("/api/apply");
+        const data = await res.json();
+        if (ignore) return;
+
+        let serverApplicants: ApplicantRecord[] = [];
+        if (res.ok && data.success && Array.isArray(data.applicants)) {
+          serverApplicants = data.applicants;
+          setDataSource(data.source || "in-memory");
+        }
+
+        const local = getStoredApplicants();
+        const map = new Map<string, ApplicantRecord>();
+        serverApplicants.forEach((a) => map.set(a.id, a));
+        local.forEach((a) => {
+          if (!map.has(a.id)) map.set(a.id, a);
+        });
+
+        const merged = Array.from(map.values()).sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+        setApplicants(merged);
+      } catch (e) {
+        if (!ignore) {
+          console.warn("Failed to fetch from API, falling back to local store:", e);
+          setApplicants(getStoredApplicants());
+          setDataSource("local");
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
     }
+
+    void fetchData();
+
+    return () => {
+      ignore = true;
+    };
   }, [isAuthenticated]);
 
   const handleStatusChange = async (id: string, newStatus: ApplicantStatus) => {
@@ -276,7 +303,7 @@ function AdminPortalContent() {
             </div>
 
             <button
-              onClick={loadApplicants}
+              onClick={refreshApplicants}
               disabled={isLoading}
               className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
               title="Refresh applicants list"
