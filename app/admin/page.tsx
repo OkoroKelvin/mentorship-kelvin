@@ -185,7 +185,7 @@ function AdminPortalContent() {
                 placeholder="Enter ADMIN_SECRET..."
                 value={inputToken}
                 onChange={(e) => setInputToken(e.target.value)}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-xl text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 text-center tracking-widest"
+                className="w-full px-4 py-3.5 bg-zinc-900 border border-zinc-700 rounded-xl text-base sm:text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 text-center tracking-widest"
               />
             </div>
 
@@ -202,7 +202,7 @@ function AdminPortalContent() {
             <button
               id="admin-auth-submit-btn"
               type="submit"
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-cyan-500/30 cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-bold text-sm transition-all shadow-lg shadow-cyan-500/30 cursor-pointer flex items-center justify-center gap-2"
             >
               View Applications <ArrowRight className="w-4 h-4 text-slate-950" />
             </button>
@@ -221,48 +221,62 @@ function AdminPortalContent() {
     );
   }
 
-  // AUTHENTICATED DASHBOARD - LIGHTWEIGHT & CLEAN
+  // AUTHENTICATED DASHBOARD - LIGHTWEIGHT, CLEAN & MOBILE COMPATIBLE
   return (
     <div className="min-h-screen bg-[#090a0f] text-gray-100 flex flex-col">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 border-b border-zinc-800 bg-[#0c0e18]/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors"
-              title="Return to Public Landing Page"
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-white tracking-tight">
-                  Received Applications
-                </h1>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Sync
-                </span>
+      <header className="sticky top-0 z-40 border-b border-zinc-800 bg-[#0c0e18]/95 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-0 sm:h-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex items-center justify-between sm:justify-start gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+              <Link
+                href="/"
+                className="p-2 sm:p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors shrink-0"
+                title="Return to Public Landing Page"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate">
+                    Applications
+                  </h1>
+                  <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold flex items-center gap-1 shrink-0">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Live
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-400 truncate hidden xs:block">
+                  Kelvin Okoro 1-on-1 Mentorship
+                </p>
               </div>
-              <p className="text-xs text-zinc-400">
-                Kelvin Okoro 1-on-1 Mentorship Applications
-              </p>
             </div>
+
+            {/* Mobile Refresh Button */}
+            <button
+              onClick={refreshApplicants}
+              disabled={isLoading}
+              className="sm:hidden p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer shrink-0"
+              title="Refresh applicants list"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+              />
+            </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
             {/* Source indicator */}
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-400">
-              <Database className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Source:</span>
-              <strong className="text-zinc-200 capitalize">{dataSource}</strong>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-400">
+              <Database className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+              <span className="hidden xs:inline">Source:</span>
+              <strong className="text-zinc-200 capitalize truncate max-w-[100px]">{dataSource}</strong>
             </div>
 
             <button
               onClick={refreshApplicants}
               disabled={isLoading}
-              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              className="hidden sm:inline-flex p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
               title="Refresh applicants list"
             >
               <RefreshCw
@@ -273,49 +287,49 @@ function AdminPortalContent() {
             <button
               id="admin-export-csv-btn"
               onClick={() => exportApplicantsToCSV(filteredApplicants)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-400 via-sky-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap active:scale-95"
             >
-              <Download className="w-3.5 h-3.5 text-slate-950" />
-              Export to CSV ({filteredApplicants.length})
+              <Download className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+              <span>Export CSV ({filteredApplicants.length})</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 py-8 w-full space-y-6">
-        {/* Simple Metric Bar - ONLY Total Received */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-5 rounded-2xl border border-zinc-800 bg-[#0f111d] flex items-center justify-between">
+      <main className="flex-1 max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8 w-full space-y-4 sm:space-y-6">
+        {/* Simple Metric Bar & Search Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+          <div className="p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-[#0f111d] flex items-center justify-between">
             <div className="space-y-1">
               <div className="text-xs text-zinc-400 font-medium flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-cyan-400" /> Total Received
               </div>
-              <div className="text-3xl font-extrabold text-white tracking-tight">
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                 {applicants.length}
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xs text-zinc-500 block">Status: Active</span>
-              <span className="text-xs text-emerald-400 font-medium">Ready for review</span>
+              <span className="text-[11px] sm:text-xs text-zinc-500 block">Status: Active</span>
+              <span className="text-[11px] sm:text-xs text-emerald-400 font-medium">Ready for review</span>
             </div>
           </div>
 
           {/* Quick Search Bar */}
-          <div className="p-5 rounded-2xl border border-zinc-800 bg-[#0f111d] flex flex-col justify-center">
+          <div className="p-4 sm:p-5 rounded-2xl border border-zinc-800 bg-[#0f111d] flex flex-col justify-center">
             <div className="relative w-full">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Search by name, email, phone, or answer keywords..."
+                placeholder="Search by name, email, phone, or keywords..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-9 py-2.5 text-xs bg-zinc-900 border border-zinc-700/80 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                className="w-full pl-10 pr-9 py-2.5 text-base sm:text-xs bg-zinc-900 border border-zinc-700/80 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white p-1"
                   title="Clear search"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -331,9 +345,9 @@ function AdminPortalContent() {
         </div>
 
         {/* Applicants List - Clean Data View */}
-        <div className="space-y-4">
+        <div className="space-y-3.5 sm:space-y-4">
           {filteredApplicants.length === 0 ? (
-            <div className="p-16 text-center border border-dashed border-zinc-800 rounded-2xl space-y-2 bg-[#0c0e18]/40">
+            <div className="p-10 sm:p-16 text-center border border-dashed border-zinc-800 rounded-2xl space-y-2 bg-[#0c0e18]/40">
               <Search className="w-8 h-8 mx-auto text-zinc-600" />
               <h3 className="text-zinc-300 font-semibold text-sm">
                 No applications match your search
@@ -347,25 +361,33 @@ function AdminPortalContent() {
               <article
                 key={app.id || index}
                 id={`admin-card-${app.id}`}
-                className="p-6 rounded-2xl border border-zinc-800/80 bg-[#0f111d] hover:border-zinc-700 transition-all space-y-5 shadow-sm"
+                className="p-4 sm:p-6 rounded-2xl border border-zinc-800/80 bg-[#0f111d] hover:border-zinc-700 transition-all space-y-4 sm:space-y-5 shadow-sm"
               >
                 {/* Header: Full Name + Contact + Date/ID */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800/80">
-                  <div>
-                    <h2 className="text-lg font-bold text-white tracking-tight">
-                      {app.fullName}
-                    </h2>
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-400 mt-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 sm:pb-4 border-b border-zinc-800/80">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+                      <h2 className="text-base sm:text-lg font-bold text-white tracking-tight break-words">
+                        {app.fullName}
+                      </h2>
+                      <div className="flex items-center gap-2 text-xs text-zinc-500 font-mono sm:hidden">
+                        <span className="px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px]">
+                          {app.id}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-zinc-400 mt-1.5">
                       <a
                         href={`mailto:${app.email}`}
-                        className="inline-flex items-center gap-1.5 text-zinc-300 hover:text-cyan-400 underline font-medium"
+                        className="inline-flex items-center gap-1.5 text-zinc-300 hover:text-cyan-400 underline font-medium break-all"
                       >
-                        <Mail className="w-3.5 h-3.5 text-cyan-400" />
-                        {app.email}
+                        <Mail className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <span>{app.email}</span>
                       </a>
                       {app.phoneNumber && (
                         <>
-                          <span>•</span>
+                          <span className="text-zinc-600 hidden xs:inline">•</span>
                           <a
                             href={`https://wa.me/${app.phoneNumber.replace(/[^0-9]/g, "")}`}
                             target="_blank"
@@ -373,36 +395,61 @@ function AdminPortalContent() {
                             className="inline-flex items-center gap-1.5 text-emerald-400 hover:text-emerald-300 font-medium"
                             title="Open chat on WhatsApp"
                           >
-                            <Phone className="w-3.5 h-3.5" />
-                            {app.phoneNumber}
+                            <Phone className="w-3.5 h-3.5 shrink-0" />
+                            <span>{app.phoneNumber}</span>
                           </a>
                         </>
                       )}
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 mt-2.5">
+                    {/* Coding Level & Laptop Badges */}
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-2.5">
                       {app.codingLevel && (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border bg-cyan-500/10 border-cyan-500/30 text-cyan-300">
-                          <Code2 className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>Coding Level: {app.codingLevel}/10</span>
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold border bg-cyan-500/10 border-cyan-500/30 text-cyan-300">
+                          <Code2 className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span>Level: {app.codingLevel}/10</span>
                         </span>
                       )}
                       {app.hasLaptop && (
                         <span
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium border ${
                             app.hasLaptop.startsWith("Yes")
                               ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
                               : "bg-amber-500/10 border-amber-500/30 text-amber-300"
                           }`}
                         >
-                          <Laptop className="w-3.5 h-3.5" />
-                          <span>Laptop: {app.hasLaptop}</span>
+                          <Laptop className="w-3 h-3 shrink-0" />
+                          <span className="truncate max-w-[200px]">Laptop: {app.hasLaptop}</span>
                         </span>
                       )}
                     </div>
+
+                    {/* Direct Mobile Quick Contact Buttons */}
+                    <div className="flex items-center gap-2 mt-3 pt-2">
+                      {app.phoneNumber && (
+                        <a
+                          href={`https://wa.me/${app.phoneNumber.replace(/[^0-9]/g, "")}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 text-xs font-semibold transition-all active:scale-95"
+                          title="Open WhatsApp chat directly"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>WhatsApp</span>
+                        </a>
+                      )}
+                      <a
+                        href={`mailto:${app.email}`}
+                        className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-800/80 border border-zinc-700/80 text-zinc-200 hover:bg-zinc-700/80 text-xs font-semibold transition-all active:scale-95"
+                        title="Send email"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Email</span>
+                      </a>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3 text-xs text-zinc-500 font-mono self-start sm:self-auto">
+                  <div className="hidden sm:flex items-center gap-3 text-xs text-zinc-500 font-mono self-start sm:self-auto shrink-0">
                     <span className="inline-flex items-center gap-1">
                       <Calendar className="w-3 h-3 text-zinc-500" />
                       {new Date(app.createdAt).toLocaleDateString(undefined, {
@@ -419,33 +466,33 @@ function AdminPortalContent() {
                 </div>
 
                 {/* Body: Direct Answers to the 3 Core Questions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs">
                   {/* Target Outcome */}
-                  <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/70">
+                  <div className="space-y-1.5 p-3 sm:p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/70">
                     <div className="font-semibold text-cyan-300 flex items-center gap-1.5">
-                      <Target className="w-3.5 h-3.5" /> 30-Day Target Outcome
+                      <Target className="w-3.5 h-3.5 shrink-0" /> 30-Day Target Outcome
                     </div>
-                    <p className="text-zinc-200 leading-relaxed">
+                    <p className="text-zinc-200 leading-relaxed break-words text-xs sm:text-sm">
                       {app.targetOutcome}
                     </p>
                   </div>
 
                   {/* Bottleneck */}
-                  <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/70">
+                  <div className="space-y-1.5 p-3 sm:p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/70">
                     <div className="font-semibold text-amber-300 flex items-center gap-1.5">
-                      <AlertCircle className="w-3.5 h-3.5" /> Biggest Bottleneck
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" /> Biggest Bottleneck
                     </div>
-                    <p className="text-zinc-200 leading-relaxed">
+                    <p className="text-zinc-200 leading-relaxed break-words text-xs sm:text-sm">
                       {app.bottleneck}
                     </p>
                   </div>
 
                   {/* Why You / Pitch */}
-                  <div className="space-y-1.5 p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/70">
+                  <div className="space-y-1.5 p-3 sm:p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800/70">
                     <div className="font-semibold text-emerald-300 flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5" /> Pitch / Why Kelvin
+                      <MessageSquare className="w-3.5 h-3.5 shrink-0" /> Pitch / Why Kelvin
                     </div>
-                    <p className="text-zinc-200 leading-relaxed whitespace-pre-line">
+                    <p className="text-zinc-200 leading-relaxed whitespace-pre-line break-words text-xs sm:text-sm">
                       {app.whyYou}
                     </p>
                   </div>

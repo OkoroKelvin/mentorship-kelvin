@@ -449,7 +449,7 @@ export default function ApplicationFunnel({
                   autoComplete="name"
                   value={formData.fullName}
                   onChange={(e) => updateField("fullName", e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
                     errors.fullName
                       ? "border border-rose-500 bg-slate-900/90 focus:ring-1 focus:ring-rose-500"
                       : "gorilla-glass-input"
@@ -479,7 +479,7 @@ export default function ApplicationFunnel({
                   autoComplete="email"
                   value={formData.email}
                   onChange={(e) => updateField("email", e.target.value)}
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
                     errors.email
                       ? "border border-rose-500 bg-slate-900/90 focus:ring-1 focus:ring-rose-500"
                       : "gorilla-glass-input"
@@ -514,7 +514,7 @@ export default function ApplicationFunnel({
                     const onlyNums = e.target.value.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
                     updateField("phoneNumber", onlyNums);
                   }}
-                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
                     errors.phoneNumber
                       ? "border border-rose-500 bg-slate-900/90 focus:ring-1 focus:ring-rose-500"
                       : "gorilla-glass-input"
@@ -560,7 +560,7 @@ export default function ApplicationFunnel({
                 maxLength={500}
                 value={formData.targetOutcome}
                 onChange={(e) => updateField("targetOutcome", e.target.value)}
-                className={`w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none ${
+                className={`w-full px-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none ${
                   errors.targetOutcome
                     ? "border border-rose-500 bg-slate-900/90 focus:ring-1 focus:ring-rose-500"
                     : "gorilla-glass-input"
@@ -594,7 +594,7 @@ export default function ApplicationFunnel({
                 maxLength={500}
                 value={formData.bottleneck}
                 onChange={(e) => updateField("bottleneck", e.target.value)}
-                className={`w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none ${
+                className={`w-full px-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none ${
                   errors.bottleneck
                     ? "border border-rose-500 bg-slate-900/90 focus:ring-1 focus:ring-rose-500"
                     : "gorilla-glass-input"
@@ -802,7 +802,7 @@ export default function ApplicationFunnel({
                 maxLength={1500}
                 value={formData.whyYou}
                 onChange={(e) => updateField("whyYou", e.target.value)}
-                className={`w-full px-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none ${
+                className={`w-full px-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none transition-all resize-none ${
                   errors.whyYou
                     ? "border border-rose-500 bg-slate-900/90 focus:ring-1 focus:ring-rose-500"
                     : "gorilla-glass-input"
