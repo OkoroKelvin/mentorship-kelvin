@@ -33,73 +33,8 @@ function phonesMatch(phoneA: string, phoneB: string): boolean {
   return false;
 }
 
-// In-memory fallback applicants store for local dev or when Supabase is offline
-const inMemoryApplicants: ApplicantRecord[] = [
-  {
-    id: "app_demo_1",
-    fullName: "Alex Rivera",
-    email: "alex.rivera@example.com",
-    phoneNumber: "+1 415 555 0192",
-    profileUrl: "https://github.com/arivera-dev",
-    yearsOfExperience: "3-5 years",
-    currentRole: "Mid-level Fullstack Engineer",
-    primaryStack: "TypeScript, React, Node.js, PostgreSQL",
-    targetOutcome: "Level up to Senior Engineer and master distributed system architectures",
-    bottleneck: "Lacking confidence in high-scale system design and large codebase refactoring",
-    weeklyHours: "10-15 hrs/week",
-    whyYou: "I have shipped multiple MVPs but hit a plateau at my current company. I want Kelvin's direct eyes on my PRs and system designs to break into a Tier-1 tech company.",
-    status: "shortlisted",
-    createdAt: "2026-10-23T10:00:00.000Z",
-  },
-  {
-    id: "app_demo_2",
-    fullName: "Chioma Nwosu",
-    email: "chioma.n@example.com",
-    phoneNumber: "+44 7700 900123",
-    profileUrl: "https://linkedin.com/in/chioma-nwosu",
-    yearsOfExperience: "5+ years",
-    currentRole: "Backend Engineer",
-    primaryStack: "Go, Kubernetes, Kafka, gRPC, AWS",
-    targetOutcome: "Launch a production high-throughput microservices SaaS within 30 days",
-    bottleneck: "Analysis paralysis on infrastructure patterns and developer velocity",
-    weeklyHours: "15+ hrs/week",
-    whyYou: "I am ready to commit 20+ hours a week. I need someone who has operated at high scale to audit my architecture before we launch to 50k beta users.",
-    status: "pending",
-    createdAt: "2026-10-24T12:00:00.000Z",
-  },
-  {
-    id: "app_demo_3",
-    fullName: "Marcus Chen",
-    email: "m.chen@example.org",
-    phoneNumber: "+1 212 555 0148",
-    profileUrl: "https://github.com/marcuschen-oss",
-    yearsOfExperience: "1-3 years",
-    currentRole: "Frontend Developer",
-    primaryStack: "Next.js, Tailwind CSS, TypeScript, GraphQL",
-    targetOutcome: "Transition to Fullstack Engineering and ace Technical Lead screens",
-    bottleneck: "Backend database indexing, query optimization, and architectural trade-offs",
-    weeklyHours: "10-15 hrs/week",
-    whyYou: "I have been following Kelvin's engineering breakdowns. His pragmatic, no-BS approach to shipping software matches exactly the mentor guidance I need.",
-    status: "selected",
-    createdAt: "2026-10-23T08:00:00.000Z",
-  },
-  {
-    id: "app_demo_4",
-    fullName: "Devon Bailey",
-    email: "devon.b@example.net",
-    phoneNumber: "+234 803 555 0177",
-    profileUrl: "https://github.com/dbailey-codes",
-    yearsOfExperience: "<1 year",
-    currentRole: "Junior Developer",
-    primaryStack: "Python, Django, PostgreSQL",
-    targetOutcome: "Learn production git workflows and CI/CD pipelines",
-    bottleneck: "Troubleshooting complex staging environments and containerization",
-    weeklyHours: "5-10 hrs/week",
-    whyYou: "I'm looking for guidance on how senior engineers think through code reviews and system reliability.",
-    status: "rejected",
-    createdAt: "2026-10-22T16:00:00.000Z",
-  },
-];
+// In-memory fallback applicants store for local dev or when database is offline
+const inMemoryApplicants: ApplicantRecord[] = [];
 
 export async function POST(req: NextRequest) {
   try {
@@ -114,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "Rate limit exceeded. You can submit up to 5 applications per 10 minutes.",
+          error: "Too many submission attempts from this network. Please wait a moment before trying again.",
           retryAfterSeconds: retrySeconds,
         },
         {
@@ -198,45 +133,36 @@ export async function POST(req: NextRequest) {
 
     if (isCloudflareD1Configured) {
       try {
-        // Check for duplicate email in Cloudflare D1
-        const emailCheck = await executeD1Query<{ id: string }>(
-          "SELECT id FROM applications WHERE LOWER(TRIM(email)) = ? LIMIT 1",
-          [normalizedEmail]
+        // Optimized single-query duplicate check (cuts database roundtrips in half)
+        let duplicateCheckSql = "SELECT id, email, phone_number FROM applications WHERE LOWER(TRIM(email)) = ?";
+        const duplicateParams: (string | number | boolean | null)[] = [normalizedEmail];
+
+        if (normalizedPhone && normalizedPhone.length >= 6) {
+          duplicateCheckSql += " OR (phone_number != '' AND phone_number LIKE ?)";
+          duplicateParams.push(`%${normalizedPhone.replace(/^\+/, "")}%`);
+        }
+        duplicateCheckSql += " LIMIT 1";
+
+        const existingCheck = await executeD1Query<{ id: string; email: string; phone_number: string }>(
+          duplicateCheckSql,
+          duplicateParams
         );
 
-        if (emailCheck.results.length > 0) {
+        if (existingCheck.results.length > 0) {
+          const match = existingCheck.results[0];
+          const isEmailMatch = match.email && match.email.toLowerCase().trim() === normalizedEmail;
           return NextResponse.json(
             {
               success: false,
-              error: "An application with this email address has already been submitted for this cohort.",
-              fieldErrors: {
-                email: "An application with this email address has already been submitted.",
-              },
+              error: isEmailMatch
+                ? "An application with this email address has already been submitted for this cohort."
+                : "An application with this phone number has already been submitted for this cohort.",
+              fieldErrors: isEmailMatch
+                ? { email: "An application with this email address has already been submitted." }
+                : { phoneNumber: "An application with this phone number has already been submitted." },
             },
             { status: 409 }
           );
-        }
-
-        // Check for duplicate phone in Cloudflare D1
-        if (normalizedPhone && normalizedPhone.length >= 6) {
-          const phoneLookup = `%${normalizedPhone.replace(/^\+/, "")}%`;
-          const phoneCheck = await executeD1Query<{ id: string }>(
-            "SELECT id FROM applications WHERE phone_number LIKE ? LIMIT 1",
-            [phoneLookup]
-          );
-
-          if (phoneCheck.results.length > 0) {
-            return NextResponse.json(
-              {
-                success: false,
-                error: "An application with this phone number has already been submitted for this cohort.",
-                fieldErrors: {
-                  phoneNumber: "An application with this phone number has already been submitted.",
-                },
-              },
-              { status: 409 }
-            );
-          }
         }
 
         const newId = generateReferenceId();
@@ -244,28 +170,37 @@ export async function POST(req: NextRequest) {
 
         const insertRes = await executeD1Query(
           `INSERT INTO applications (
-            id, created_at, full_name, email, phone_number, profile_url,
-            years_of_experience, current_role, primary_stack, target_outcome,
-            bottleneck, weekly_hours, why_you, status, notes
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', '')`,
+            id, created_at, full_name, email, phone_number,
+            target_outcome, bottleneck, has_laptop, coding_level, why_you, status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
           [
             newId,
             nowIso,
             validData.fullName,
             validData.email,
             validData.phoneNumber,
-            validData.profileUrl || "",
-            validData.yearsOfExperience || "",
-            validData.currentRole || "",
-            validData.primaryStack,
             validData.targetOutcome,
             validData.bottleneck,
-            validData.weeklyHours,
+            validData.hasLaptop,
+            validData.codingLevel,
             validData.whyYou,
           ]
         );
 
         if (!insertRes.success) {
+          // Detect database unique constraint collisions during high-concurrency simultaneous submissions
+          if (insertRes.error && insertRes.error.toLowerCase().includes("unique")) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "An application with this email address has already been submitted for this cohort.",
+                fieldErrors: {
+                  email: "An application with this email address has already been submitted.",
+                },
+              },
+              { status: 409 }
+            );
+          }
           throw new Error(insertRes.error || "Failed to insert into Cloudflare D1");
         }
 
@@ -337,13 +272,10 @@ export async function POST(req: NextRequest) {
               full_name: validData.fullName,
               email: validData.email,
               phone_number: validData.phoneNumber,
-              profile_url: validData.profileUrl,
-              years_of_experience: validData.yearsOfExperience,
-              current_role: validData.currentRole,
-              primary_stack: validData.primaryStack,
               target_outcome: validData.targetOutcome,
               bottleneck: validData.bottleneck,
-              weekly_hours: validData.weeklyHours,
+              has_laptop: validData.hasLaptop,
+              coding_level: validData.codingLevel,
               why_you: validData.whyYou,
               status: "pending",
             },
@@ -376,13 +308,10 @@ export async function POST(req: NextRequest) {
           fullName: data.full_name,
           email: data.email,
           phoneNumber: data.phone_number || validData.phoneNumber,
-          profileUrl: data.profile_url,
-          yearsOfExperience: data.years_of_experience,
-          currentRole: data.current_role,
-          primaryStack: data.primary_stack,
           targetOutcome: data.target_outcome,
           bottleneck: data.bottleneck,
-          weeklyHours: data.weekly_hours,
+          hasLaptop: data.has_laptop || validData.hasLaptop,
+          codingLevel: data.coding_level || validData.codingLevel,
           whyYou: data.why_you,
           notes: data.notes || "",
         };
@@ -440,15 +369,11 @@ function convertApplicantsToCSV(applicants: ApplicantRecord[]): string {
     "Full Name",
     "Email",
     "Phone (WhatsApp)",
-    "Profile URL",
-    "Years of Experience",
-    "Current Role",
-    "Primary Stack",
-    "30-Day Target Outcome",
+    "Has Qualifying Laptop",
+    "Coding Level (1-10)",
+    "First Target Outcome",
     "Biggest Bottleneck",
-    "Weekly Hours Commitment",
     "Why You Pitch",
-    "Review Status",
   ];
 
   const escapeCSV = (str: string | undefined) => {
@@ -463,15 +388,11 @@ function convertApplicantsToCSV(applicants: ApplicantRecord[]): string {
     escapeCSV(app.fullName),
     escapeCSV(app.email),
     escapeCSV(app.phoneNumber),
-    escapeCSV(app.profileUrl),
-    escapeCSV(app.yearsOfExperience),
-    escapeCSV(app.currentRole),
-    escapeCSV(app.primaryStack),
+    escapeCSV(app.hasLaptop),
+    escapeCSV(app.codingLevel ? `${app.codingLevel}/10` : ""),
     escapeCSV(app.targetOutcome),
     escapeCSV(app.bottleneck),
-    escapeCSV(app.weeklyHours),
     escapeCSV(app.whyYou),
-    escapeCSV(app.status.toUpperCase()),
   ]);
 
   return [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
@@ -493,13 +414,10 @@ export async function GET(req: NextRequest) {
           fullName: String(row.full_name || ""),
           email: String(row.email || ""),
           phoneNumber: String(row.phone_number || ""),
-          profileUrl: String(row.profile_url || ""),
-          yearsOfExperience: String(row.years_of_experience || ""),
-          currentRole: String(row.current_role || ""),
-          primaryStack: String(row.primary_stack || "Java"),
+          hasLaptop: String(row.has_laptop || ""),
+          codingLevel: String(row.coding_level || ""),
           targetOutcome: String(row.target_outcome || ""),
           bottleneck: String(row.bottleneck || ""),
-          weeklyHours: String(row.weekly_hours || ""),
           whyYou: String(row.why_you || ""),
           notes: String(row.notes || ""),
         }));
@@ -545,13 +463,10 @@ export async function GET(req: NextRequest) {
         fullName: row.full_name,
         email: row.email,
         phoneNumber: row.phone_number || "",
-        profileUrl: row.profile_url,
-        yearsOfExperience: row.years_of_experience,
-        currentRole: row.current_role,
-        primaryStack: row.primary_stack,
+        hasLaptop: row.has_laptop || "",
+        codingLevel: row.coding_level || "",
         targetOutcome: row.target_outcome,
         bottleneck: row.bottleneck,
-        weeklyHours: row.weekly_hours,
         whyYou: row.why_you,
         notes: row.notes || "",
       }));
@@ -610,13 +525,8 @@ export async function PATCH(req: NextRequest) {
                 fullName: String(row.full_name || ""),
                 email: String(row.email || ""),
                 phoneNumber: String(row.phone_number || ""),
-                profileUrl: String(row.profile_url || ""),
-                yearsOfExperience: String(row.years_of_experience || ""),
-                currentRole: String(row.current_role || ""),
-                primaryStack: String(row.primary_stack || "Java"),
                 targetOutcome: String(row.target_outcome || ""),
                 bottleneck: String(row.bottleneck || ""),
-                weeklyHours: String(row.weekly_hours || ""),
                 whyYou: String(row.why_you || ""),
                 notes: String(row.notes || ""),
               },
@@ -650,13 +560,8 @@ export async function PATCH(req: NextRequest) {
             fullName: data.full_name,
             email: data.email,
             phoneNumber: data.phone_number || "",
-            profileUrl: data.profile_url,
-            yearsOfExperience: data.years_of_experience,
-            currentRole: data.current_role,
-            primaryStack: data.primary_stack,
             targetOutcome: data.target_outcome,
             bottleneck: data.bottleneck,
-            weeklyHours: data.weekly_hours,
             whyYou: data.why_you,
             notes: data.notes || "",
           },

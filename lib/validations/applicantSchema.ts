@@ -14,13 +14,9 @@ export const step1Schema = z.object({
     .min(5, "Please enter your WhatsApp-enabled phone number")
     .max(25, "Phone number is too long")
     .regex(/^[\d+]+$/, "Phone number must contain only numbers"),
-  profileUrl: z.string().optional().default(""),
-  yearsOfExperience: z.string().optional().default(""),
-  currentRole: z.string().optional().default(""),
 });
 
 export const step2Schema = z.object({
-  primaryStack: z.string().optional().default("Java"),
   targetOutcome: z
     .string()
     .min(10, "Please describe your target outcome in at least 10 characters")
@@ -32,7 +28,12 @@ export const step2Schema = z.object({
 });
 
 export const step3Schema = z.object({
-  weeklyHours: z.string().optional().default(""),
+  hasLaptop: z
+    .string()
+    .min(1, "Please confirm if you have a laptop meeting the minimum technical requirements"),
+  codingLevel: z
+    .string()
+    .min(1, "Please select your coding experience level (1-10)"),
   whyYou: z
     .string()
     .min(20, "Please tell us why you are a great fit for this cohort (minimum 20 characters)")
@@ -54,3 +55,4 @@ export interface ApplicantRecord extends ApplicantFormData {
   status: ApplicantStatus;
   notes?: string;
 }
+

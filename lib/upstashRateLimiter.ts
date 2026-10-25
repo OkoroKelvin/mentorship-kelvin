@@ -12,7 +12,7 @@ export interface RateLimitResult {
 // In-memory sliding window fallback store (10 minute window)
 const inMemoryStore = new Map<string, number[]>();
 const WINDOW_MS = 10 * 60 * 1000; // 10 minutes
-const MAX_REQUESTS = 5; // 5 requests per 10 mins per IP
+const MAX_REQUESTS = 15; // 15 requests per 10 mins per IP (accommodates shared campus/co-working Wi-Fi)
 
 function fallbackRateLimiter(ip: string): RateLimitResult {
   const now = Date.now();
@@ -61,7 +61,7 @@ function getUpstashLimiter(): Ratelimit | null {
 
       upstashRatelimitInstance = new Ratelimit({
         redis,
-        limiter: Ratelimit.slidingWindow(5, "10 m"), // 5 requests per 10 mins
+        limiter: Ratelimit.slidingWindow(15, "10 m"), // 15 requests per 10 mins
         analytics: true,
         prefix: "mentorship:ratelimit",
       });

@@ -147,10 +147,14 @@ body {
 }
 
 .water-caustic-1 {
+  will-change: transform, opacity;
+  transform: translateZ(0);
   animation: waterCaustics 12s ease-in-out infinite;
 }
 
 .water-caustic-2 {
+  will-change: transform, opacity;
+  transform: translateZ(0);
   animation: waterCaustics 16s ease-in-out infinite reverse;
 }
 

@@ -1,73 +1,8 @@
 import { ApplicantRecord, ApplicantStatus } from "./validations/applicantSchema";
 
-export const INITIAL_APPLICANTS: ApplicantRecord[] = [
-  {
-    id: "app_demo_1",
-    fullName: "Alex Rivera",
-    email: "alex.rivera@example.com",
-    phoneNumber: "+1 415 555 0192",
-    profileUrl: "https://github.com/arivera-dev",
-    yearsOfExperience: "3-5 years",
-    currentRole: "Mid-level Fullstack Engineer",
-    primaryStack: "TypeScript, React, Node.js, PostgreSQL",
-    targetOutcome: "Level up to Senior Engineer and master distributed system architectures",
-    bottleneck: "Lacking confidence in high-scale system design and large codebase refactoring",
-    weeklyHours: "10-15 hrs/week",
-    whyYou: "I have shipped multiple MVPs but hit a plateau at my current company. I want Kelvin's direct eyes on my PRs and system designs to break into a Tier-1 tech company.",
-    status: "shortlisted",
-    createdAt: "2026-10-23T10:00:00.000Z",
-  },
-  {
-    id: "app_demo_2",
-    fullName: "Chioma Nwosu",
-    email: "chioma.n@example.com",
-    phoneNumber: "+44 7700 900123",
-    profileUrl: "https://linkedin.com/in/chioma-nwosu",
-    yearsOfExperience: "5+ years",
-    currentRole: "Backend Engineer",
-    primaryStack: "Go, Kubernetes, Kafka, gRPC, AWS",
-    targetOutcome: "Launch a production high-throughput microservices SaaS within 30 days",
-    bottleneck: "Analysis paralysis on infrastructure patterns and developer velocity",
-    weeklyHours: "15+ hrs/week",
-    whyYou: "I am ready to commit 20+ hours a week. I need someone who has operated at high scale to audit my architecture before we launch to 50k beta users.",
-    status: "pending",
-    createdAt: "2026-10-24T12:00:00.000Z",
-  },
-  {
-    id: "app_demo_3",
-    fullName: "Marcus Chen",
-    email: "m.chen@example.org",
-    phoneNumber: "+1 212 555 0148",
-    profileUrl: "https://github.com/marcuschen-oss",
-    yearsOfExperience: "1-3 years",
-    currentRole: "Frontend Developer",
-    primaryStack: "Next.js, Tailwind CSS, TypeScript, GraphQL",
-    targetOutcome: "Transition to Fullstack Engineering and ace Technical Lead screens",
-    bottleneck: "Backend database indexing, query optimization, and architectural trade-offs",
-    weeklyHours: "10-15 hrs/week",
-    whyYou: "I have been following Kelvin's engineering breakdowns. His pragmatic, no-BS approach to shipping software matches exactly the mentor guidance I need.",
-    status: "selected",
-    createdAt: "2026-10-23T08:00:00.000Z",
-  },
-  {
-    id: "app_demo_4",
-    fullName: "Devon Bailey",
-    email: "devon.b@example.net",
-    phoneNumber: "+234 803 555 0177",
-    profileUrl: "https://github.com/dbailey-codes",
-    yearsOfExperience: "<1 year",
-    currentRole: "Junior Developer",
-    primaryStack: "Python, Django, PostgreSQL",
-    targetOutcome: "Learn production git workflows and CI/CD pipelines",
-    bottleneck: "Troubleshooting complex staging environments and containerization",
-    weeklyHours: "5-10 hrs/week",
-    whyYou: "I'm looking for guidance on how senior engineers think through code reviews and system reliability.",
-    status: "rejected",
-    createdAt: "2026-10-22T16:00:00.000Z",
-  },
-];
+export const INITIAL_APPLICANTS: ApplicantRecord[] = [];
 
-const STORAGE_KEY = "kelvin_mentorship_applicants_v2";
+const STORAGE_KEY = "kelvin_mentorship_applicants_v3";
 
 export function getStoredApplicants(): ApplicantRecord[] {
   if (typeof window === "undefined") {
@@ -196,15 +131,11 @@ export function exportApplicantsToCSV(applicants: ApplicantRecord[]): void {
     "Full Name",
     "Email",
     "Phone (WhatsApp)",
-    "Profile URL",
-    "Years of Experience",
-    "Current Role",
-    "Primary Stack",
-    "30-Day Target Outcome",
+    "Has Qualifying Laptop",
+    "Coding Level (1-10)",
+    "First Target Outcome",
     "Biggest Bottleneck",
-    "Weekly Hours Commitment",
     "Why You Pitch",
-    "Review Status",
   ];
 
   const escapeCSV = (str: string | undefined) => {
@@ -219,15 +150,11 @@ export function exportApplicantsToCSV(applicants: ApplicantRecord[]): void {
     escapeCSV(app.fullName),
     escapeCSV(app.email),
     escapeCSV(app.phoneNumber),
-    escapeCSV(app.profileUrl),
-    escapeCSV(app.yearsOfExperience),
-    escapeCSV(app.currentRole),
-    escapeCSV(app.primaryStack),
+    escapeCSV(app.hasLaptop),
+    escapeCSV(app.codingLevel ? `${app.codingLevel}/10` : ""),
     escapeCSV(app.targetOutcome),
     escapeCSV(app.bottleneck),
-    escapeCSV(app.weeklyHours),
     escapeCSV(app.whyYou),
-    escapeCSV(app.status.toUpperCase()),
   ]);
 
   const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");

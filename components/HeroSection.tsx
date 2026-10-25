@@ -1,8 +1,6 @@
-"use client";
-
 import React from "react";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 interface HeroSectionProps {
   onOpenApplyModal: () => void;
@@ -10,7 +8,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onOpenApplyModal }: HeroSectionProps) {
   return (
-    <section className="relative overflow-hidden pt-12 pb-20 md:pt-20 md:pb-32">
+    <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24">
       {/* Background ambient water caustic spheres */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-cyan-500/12 rounded-full blur-[140px] pointer-events-none water-caustic-1" />
       <div className="absolute top-1/3 -right-20 w-[450px] h-[450px] bg-blue-600/12 rounded-full blur-[120px] pointer-events-none water-caustic-2" />
@@ -19,13 +17,20 @@ export default function HeroSection({ onOpenApplyModal }: HeroSectionProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           {/* Left Column: Headline & Value Prop */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            {/* Active Cohort Announcement Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full gorilla-glass text-cyan-300 text-xs font-semibold shadow-inner">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
-              </span>
-              <span>November 2026 Cohort • Weekend Mentorship with Java</span>
+            {/* Active Cohort Announcement Badges */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full gorilla-glass text-cyan-300 text-xs font-semibold shadow-inner">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+                </span>
+                <span>Grow with Kelvin Okoro. Weekend Mentorship with Java</span>
+              </div>
+
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full gorilla-glass text-emerald-300 text-xs font-semibold shadow-inner border border-emerald-500/30">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>A stipend will be given for the month</span>
+              </div>
             </div>
 
             {/* Main Headline */}
@@ -39,10 +44,9 @@ export default function HeroSection({ onOpenApplyModal }: HeroSectionProps) {
 
             {/* Subheading */}
             <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Direct, private weekend Java mentorship with{" "}
-              <strong className="text-white font-semibold">Kelvin</strong>.
-              Master production Spring Boot, high-throughput microservices, and distributed architectures.
-              Unblock hard technical bottlenecks and operate at the senior level.
+              Online weekend mentorship with{" "}
+              <strong className="text-white font-semibold">Kelvin Okoro</strong>.
+              Get the best foundations and fundamentals in coding, gain crystal-clear direction, and find the inspiration to keep growing and thriving in tech.
             </p>
 
             {/* CTA Buttons */}

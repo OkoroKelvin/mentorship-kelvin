@@ -45,6 +45,7 @@ export async function executeD1Query<T = unknown>(
         params,
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(8000),
     });
 
     const data = await res.json();

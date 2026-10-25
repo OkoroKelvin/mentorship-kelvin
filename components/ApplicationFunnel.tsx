@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import confetti from "canvas-confetti";
 import {
   ApplicantFormData,
@@ -28,37 +29,91 @@ import {
   ShieldCheck,
   Send,
   Loader2,
+  Laptop,
 } from "lucide-react";
 
 interface ApplicationFunnelProps {
   onClose?: () => void;
 }
 
+const defaultFormData: ApplicantFormData = {
+  fullName: "",
+  email: "",
+  phoneNumber: "",
+  targetOutcome: "",
+  bottleneck: "",
+  hasLaptop: "",
+  codingLevel: "",
+  whyYou: "",
+};
+
 export default function ApplicationFunnel({
   onClose,
 }: ApplicationFunnelProps) {
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  // Synchronously initialize active step from URL params or saved session step
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const stepParam = params.get("step");
+        const savedStep = sessionStorage.getItem("mentorship_return_step");
+        const targetStep = stepParam || savedStep;
+        if (targetStep === "1" || targetStep === "2" || targetStep === "3") {
+          return Number(targetStep) as 1 | 2 | 3;
+        }
+
+        const savedDraft = sessionStorage.getItem("kelvin_mentorship_draft");
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.currentStep) return parsed.currentStep;
+        }
+      } catch {}
+    }
+    return 1;
+  });
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submissionId, setSubmissionId] = useState("");
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // Form State
-  const [formData, setFormData] = useState<ApplicantFormData>({
-    fullName: "",
-    email: "",
-    phoneNumber: "",
-    profileUrl: "",
-    yearsOfExperience: "",
-    currentRole: "",
-    primaryStack: "Java",
-    targetOutcome: "",
-    bottleneck: "",
-    weeklyHours: "",
-    whyYou: "",
+  // Synchronously initialize form data from draft in sessionStorage
+  const [formData, setFormData] = useState<ApplicantFormData>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedDraft = sessionStorage.getItem("kelvin_mentorship_draft");
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.formData) {
+            return { ...defaultFormData, ...parsed.formData };
+          }
+        }
+      } catch {}
+    }
+    return defaultFormData;
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Persist draft and return step to sessionStorage on changes
+  useEffect(() => {
+    if (isSubmitted || typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem("mentorship_modal_active", "true");
+      sessionStorage.setItem("mentorship_return_step", String(currentStep));
+      sessionStorage.setItem(
+        "kelvin_mentorship_draft",
+        JSON.stringify({ formData, currentStep })
+      );
+
+      // Keep browser address bar in sync: /?apply=true&step=X
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("apply") === "true") {
+        url.searchParams.set("step", String(currentStep));
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {}
+  }, [formData, currentStep, isSubmitted]);
 
   // Confetti burst
   const triggerCelebration = () => {
@@ -106,9 +161,6 @@ export default function ApplicationFunnel({
       fullName: formData.fullName,
       email: formData.email,
       phoneNumber: formData.phoneNumber,
-      profileUrl: formData.profileUrl,
-      yearsOfExperience: formData.yearsOfExperience,
-      currentRole: formData.currentRole,
     });
 
     if (!res.success) {
@@ -141,7 +193,6 @@ export default function ApplicationFunnel({
   // Step 2 Validation
   const validateStep2 = () => {
     const res = step2Schema.safeParse({
-      primaryStack: formData.primaryStack,
       targetOutcome: formData.targetOutcome,
       bottleneck: formData.bottleneck,
     });
@@ -161,7 +212,8 @@ export default function ApplicationFunnel({
   // Step 3 Validation
   const validateStep3 = () => {
     const res = step3Schema.safeParse({
-      weeklyHours: formData.weeklyHours,
+      hasLaptop: formData.hasLaptop,
+      codingLevel: formData.codingLevel,
       whyYou: formData.whyYou,
     });
 
@@ -236,6 +288,8 @@ export default function ApplicationFunnel({
             setCurrentStep(1);
           } else if (data.fieldErrors.targetOutcome || data.fieldErrors.bottleneck) {
             setCurrentStep(2);
+          } else if (data.fieldErrors.hasLaptop || data.fieldErrors.codingLevel || data.fieldErrors.whyYou) {
+            setCurrentStep(3);
           }
         }
         setIsSubmitting(false);
@@ -258,6 +312,14 @@ export default function ApplicationFunnel({
 
       setIsSubmitted(true);
       setIsSubmitting(false);
+      try {
+        sessionStorage.removeItem("kelvin_mentorship_draft");
+        sessionStorage.removeItem("mentorship_modal_active");
+        sessionStorage.removeItem("mentorship_return_step");
+        if (typeof window !== "undefined") {
+          window.history.replaceState(null, "", "/");
+        }
+      } catch {}
       triggerCelebration();
     } catch (err) {
       console.error("Submission error:", err);
@@ -370,15 +432,6 @@ export default function ApplicationFunnel({
         {/* STEP 1: Background */}
         {currentStep === 1 && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-                Step 1 of 3: Your Background
-              </h3>
-              <p className="text-slate-400 text-xs md:text-sm mt-1">
-                Help Kelvin understand your current engineering baseline and
-                profile.
-              </p>
-            </div>
 
             {/* Full Name */}
             <div>
@@ -393,6 +446,7 @@ export default function ApplicationFunnel({
                 <input
                   id="input-fullName"
                   type="text"
+                  autoComplete="name"
                   value={formData.fullName}
                   onChange={(e) => updateField("fullName", e.target.value)}
                   className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
@@ -422,6 +476,7 @@ export default function ApplicationFunnel({
                 <input
                   id="input-email"
                   type="email"
+                  autoComplete="email"
                   value={formData.email}
                   onChange={(e) => updateField("email", e.target.value)}
                   className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
@@ -453,6 +508,7 @@ export default function ApplicationFunnel({
                   id="input-phoneNumber"
                   type="tel"
                   inputMode="numeric"
+                  autoComplete="tel"
                   value={formData.phoneNumber}
                   onChange={(e) => {
                     const onlyNums = e.target.value.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
@@ -488,14 +544,6 @@ export default function ApplicationFunnel({
         {/* STEP 2: Technical Focus & Goals */}
         {currentStep === 2 && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-                Step 2 of 3: Your Java Goals & Bottlenecks
-              </h3>
-              <p className="text-slate-400 text-xs md:text-sm mt-1">
-                Tell Kelvin the specific Java breakthroughs and architecture outcomes you want to unlock.
-              </p>
-            </div>
 
             {/* 30-Day Target Outcome */}
             <div>
@@ -590,15 +638,6 @@ export default function ApplicationFunnel({
         {/* STEP 3: Commitment & Pitch */}
         {currentStep === 3 && (
           <div className="space-y-5 animate-in fade-in duration-200">
-            <div>
-              <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight">
-                Step 3 of 3: Commitment & Fit
-              </h3>
-              <p className="text-slate-400 text-xs md:text-sm mt-1">
-                Kelvin accepts only 6 engineers per cohort to guarantee
-                relentless personal focus.
-              </p>
-            </div>
 
             {/* Weekend Schedule Notice */}
             <div className="p-3.5 rounded-xl gorilla-glass text-cyan-200 text-xs flex items-center gap-2.5">
@@ -606,6 +645,146 @@ export default function ApplicationFunnel({
               <span>
                 All live calls with Kelvin Okoro are held exclusively on <strong>weekends (Saturdays & Sundays)</strong>
               </span>
+            </div>
+
+            {/* Laptop / Hardware Requirement */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold text-slate-300">
+                Laptop Specification Requirement <span className="text-cyan-400">*</span>
+              </label>
+
+              {/* Requirement specification card */}
+              <div className="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 space-y-2">
+                <div className="flex items-center gap-2 text-cyan-400 font-semibold">
+                  <Laptop className="w-4 h-4" />
+                  <span>Minimum Development Laptop Specification:</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                  <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
+                    <strong className="text-white block mb-0.5">💻 PC (Windows / Linux)</strong>
+                    <span className="text-slate-400">Intel Core i5 (or AMD Ryzen 5) • 8GB+ RAM</span>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-slate-950/70 border border-slate-800">
+                    <strong className="text-white block mb-0.5">🍎 Mac (Apple)</strong>
+                    <span className="text-slate-400">Apple Silicon M1 (or newer) / Intel Core i5 • 8GB+ Unified RAM</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  A capable machine is required to run IntelliJ IDEA, Docker containers, and live JVM debugging tools smoothly.
+                </p>
+              </div>
+
+              {/* Radio selection */}
+              <div className="space-y-2 pt-1">
+                {[
+                  {
+                    value: "Yes (Meets or exceeds Core i5 / Apple M1 with 8GB+ RAM)",
+                    title: "Yes, I have a laptop meeting this specification",
+                    subtitle: "Intel Core i5 / Apple Silicon M1 (or higher) with 8GB+ RAM",
+                  },
+                  {
+                    value: "No (Below Core i5 / 8GB RAM)",
+                    title: "No, my laptop is below this specification",
+                    subtitle: "Lower processor or less than 8GB RAM",
+                  },
+                  {
+                    value: "No (I do not currently have a personal laptop)",
+                    title: "No, I do not have a laptop currently",
+                    subtitle: "Need to acquire one before cohort starts",
+                  },
+                ].map((option) => (
+                  <label
+                    key={option.value}
+                    onClick={() => updateField("hasLaptop", option.value)}
+                    className={`flex items-start gap-3 p-3 rounded-xl border text-xs cursor-pointer transition-all ${
+                      formData.hasLaptop === option.value
+                        ? "border-cyan-400 bg-cyan-950/30 text-white shadow-sm"
+                        : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="hasLaptop"
+                      value={option.value}
+                      checked={formData.hasLaptop === option.value}
+                      onChange={() => updateField("hasLaptop", option.value)}
+                      className="mt-0.5 text-cyan-400 focus:ring-cyan-400 focus:ring-offset-slate-900"
+                    />
+                    <div>
+                      <div className="font-semibold text-white">{option.title}</div>
+                      <div className="text-[11px] text-slate-400">{option.subtitle}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+
+              {errors.hasLaptop && (
+                <p className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {errors.hasLaptop}
+                </p>
+              )}
+            </div>
+
+            {/* Level of Experience in Coding (1 to 10) */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Level of Experience in Coding (1 to 10) <span className="text-cyan-400">*</span>
+                </label>
+                <span className="text-[11px] text-slate-400 font-medium">
+                  {formData.codingLevel ? `Selected: Level ${formData.codingLevel}/10` : "Select 1 to 10"}
+                </span>
+              </div>
+
+              {/* 1 to 10 Selectable Buttons */}
+              <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                {Array.from({ length: 10 }, (_, i) => String(i + 1)).map((level) => {
+                  const isSelected = formData.codingLevel === level;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      id={`btn-coding-level-${level}`}
+                      aria-pressed={isSelected}
+                      aria-label={`Coding experience level ${level} out of 10`}
+                      onClick={() => updateField("codingLevel", level)}
+                      className={`h-11 rounded-xl text-sm font-bold flex flex-col items-center justify-center transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-gradient-to-b from-cyan-400 to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/30 scale-105 border border-cyan-200"
+                          : "bg-slate-900/80 border border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white hover:bg-slate-800/60"
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Helper scale descriptors */}
+              <div className="flex items-center justify-between text-[11px] text-slate-500 px-1 pt-0.5">
+                <span>1 = Absolute Beginner</span>
+                <span>5 = Intermediate</span>
+                <span>10 = Advanced</span>
+              </div>
+
+              {formData.codingLevel && (
+                <div className="p-2.5 rounded-lg bg-cyan-950/20 border border-cyan-500/20 text-xs text-cyan-300 flex items-center gap-2 animate-in fade-in duration-150">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shrink-0" />
+                  <span>
+                    {Number(formData.codingLevel) <= 2 && "Beginner: Just starting out with programming basics & syntax."}
+                    {Number(formData.codingLevel) >= 3 && Number(formData.codingLevel) <= 4 && "Elementary: Understand basic programming constructs, logic, and small scripts."}
+                    {Number(formData.codingLevel) >= 5 && Number(formData.codingLevel) <= 6 && "Intermediate: Comfortable building full applications, APIs & database models."}
+                    {Number(formData.codingLevel) >= 7 && Number(formData.codingLevel) <= 8 && "Upper Intermediate: Building production services, concurrency & architectural patterns."}
+                    {Number(formData.codingLevel) >= 9 && "Advanced: Senior engineering level, distributed systems & high-scale optimizations."}
+                  </span>
+                </div>
+              )}
+
+              {errors.codingLevel && (
+                <p className="text-xs text-rose-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> {errors.codingLevel}
+                </p>
+              )}
             </div>
 
             {/* Why You? Pitch */}
@@ -681,6 +860,28 @@ export default function ApplicationFunnel({
                 )}
               </button>
             </div>
+
+            {/* Privacy & Data Policy Notice at point of submitting */}
+            <p className="text-[11px] text-slate-400 text-center pt-2">
+              🔒 By submitting, you agree to our{" "}
+              <Link
+                href={`/privacy?from=apply&step=${currentStep}`}
+                onClick={() => {
+                  try {
+                    sessionStorage.setItem("mentorship_modal_active", "true");
+                    sessionStorage.setItem("mentorship_return_step", String(currentStep));
+                    sessionStorage.setItem(
+                      "kelvin_mentorship_draft",
+                      JSON.stringify({ formData, currentStep })
+                    );
+                  } catch {}
+                }}
+                className="text-cyan-400 hover:text-cyan-300 underline font-medium cursor-pointer"
+              >
+                Data Privacy Policy
+              </Link>
+              . Your contact information and application answers are used solely for mentorship evaluation. Never sold or shared.
+            </p>
           </div>
         )}
       </form>
