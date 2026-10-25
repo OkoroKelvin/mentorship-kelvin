@@ -65,11 +65,17 @@ function AdminPortalContent() {
   const refreshApplicants = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/apply");
+      const secret = tokenParam || validSecret;
+      const res = await fetch(`/api/apply?key=${encodeURIComponent(secret)}`, {
+        headers: {
+          "x-admin-key": secret,
+          Authorization: `Bearer ${secret}`,
+        },
+      });
       const data = await res.json();
 
       if (res.ok && data.success && Array.isArray(data.applicants)) {
-        setDataSource(data.source || "in-memory");
+        setDataSource(data.source || "cloudflare-d1");
         setApplicants(data.applicants);
         if (typeof window !== "undefined") {
           localStorage.setItem("kelvin_mentorship_applicants_v3", JSON.stringify(data.applicants));
@@ -93,12 +99,18 @@ function AdminPortalContent() {
 
     async function fetchData() {
       try {
-        const res = await fetch("/api/apply");
+        const secret = tokenParam || validSecret;
+        const res = await fetch(`/api/apply?key=${encodeURIComponent(secret)}`, {
+          headers: {
+            "x-admin-key": secret,
+            Authorization: `Bearer ${secret}`,
+          },
+        });
         const data = await res.json();
         if (ignore) return;
 
         if (res.ok && data.success && Array.isArray(data.applicants)) {
-          setDataSource(data.source || "in-memory");
+          setDataSource(data.source || "cloudflare-d1");
           setApplicants(data.applicants);
           if (typeof window !== "undefined") {
             localStorage.setItem("kelvin_mentorship_applicants_v3", JSON.stringify(data.applicants));
