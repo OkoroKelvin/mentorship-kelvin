@@ -97,6 +97,13 @@ export async function onRequestOptions() {
   });
 }
 
+export async function onRequestHead() {
+  return new Response(null, {
+    status: 200,
+    headers: CORS_HEADERS,
+  });
+}
+
 // POST /api/apply: Submit a new application
 export async function onRequestPost(context: { request: Request; env: Env }) {
   try {

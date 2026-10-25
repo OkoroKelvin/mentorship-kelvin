@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && wrangler pages functions build functions --outdir out && mv out/index.js out/_worker.js",
+    "postbuild": "wrangler pages functions build functions --outdir out && mv out/index.js out/_worker.js",
     "start": "next start",
     "lint": "eslint"
   },
