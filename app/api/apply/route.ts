@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { applicantSchema, ApplicantRecord } from "@/lib/validations/applicantSchema";
 import { checkRateLimit } from "@/lib/upstashRateLimiter";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabaseClient";
+import { isCloudflareD1Configured, executeD1Query } from "@/lib/cloudflareD1Client";
 import { generateReferenceId } from "@/lib/applicantStore";
 
 function normalizePhone(phone: string): string {
@@ -192,11 +193,100 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 5. Supabase Database Persistence
-    const supabase = getSupabaseServerClient();
+    // 5. Cloudflare D1 or Supabase Database Persistence
     let createdApplicant: ApplicantRecord;
 
-    if (isSupabaseConfigured && supabase) {
+    if (isCloudflareD1Configured) {
+      try {
+        // Check for duplicate email in Cloudflare D1
+        const emailCheck = await executeD1Query<{ id: string }>(
+          "SELECT id FROM applications WHERE LOWER(TRIM(email)) = ? LIMIT 1",
+          [normalizedEmail]
+        );
+
+        if (emailCheck.results.length > 0) {
+          return NextResponse.json(
+            {
+              success: false,
+              error: "An application with this email address has already been submitted for this cohort.",
+              fieldErrors: {
+                email: "An application with this email address has already been submitted.",
+              },
+            },
+            { status: 409 }
+          );
+        }
+
+        // Check for duplicate phone in Cloudflare D1
+        if (normalizedPhone && normalizedPhone.length >= 6) {
+          const phoneLookup = `%${normalizedPhone.replace(/^\+/, "")}%`;
+          const phoneCheck = await executeD1Query<{ id: string }>(
+            "SELECT id FROM applications WHERE phone_number LIKE ? LIMIT 1",
+            [phoneLookup]
+          );
+
+          if (phoneCheck.results.length > 0) {
+            return NextResponse.json(
+              {
+                success: false,
+                error: "An application with this phone number has already been submitted for this cohort.",
+                fieldErrors: {
+                  phoneNumber: "An application with this phone number has already been submitted.",
+                },
+              },
+              { status: 409 }
+            );
+          }
+        }
+
+        const newId = generateReferenceId();
+        const nowIso = new Date().toISOString();
+
+        const insertRes = await executeD1Query(
+          `INSERT INTO applications (
+            id, created_at, full_name, email, phone_number, profile_url,
+            years_of_experience, current_role, primary_stack, target_outcome,
+            bottleneck, weekly_hours, why_you, status, notes
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', '')`,
+          [
+            newId,
+            nowIso,
+            validData.fullName,
+            validData.email,
+            validData.phoneNumber,
+            validData.profileUrl || "",
+            validData.yearsOfExperience || "",
+            validData.currentRole || "",
+            validData.primaryStack,
+            validData.targetOutcome,
+            validData.bottleneck,
+            validData.weeklyHours,
+            validData.whyYou,
+          ]
+        );
+
+        if (!insertRes.success) {
+          throw new Error(insertRes.error || "Failed to insert into Cloudflare D1");
+        }
+
+        createdApplicant = {
+          id: newId,
+          createdAt: nowIso,
+          status: "pending",
+          ...validData,
+        };
+      } catch (d1Err) {
+        console.warn("[Cloudflare D1 Fallback] Error writing to D1, using in-memory:", d1Err);
+        createdApplicant = {
+          id: generateReferenceId(),
+          createdAt: new Date().toISOString(),
+          status: "pending",
+          ...validData,
+        };
+        inMemoryApplicants.unshift(createdApplicant);
+      }
+    } else if (isSupabaseConfigured && getSupabaseServerClient()) {
+      const supabase = getSupabaseServerClient()!;
       try {
         // Check for duplicate email in Supabase
         const { data: existingAppEmail } = await supabase
@@ -344,6 +434,42 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
+  if (isCloudflareD1Configured) {
+    try {
+      const res = await executeD1Query<Record<string, unknown>>(
+        "SELECT * FROM applications ORDER BY created_at DESC"
+      );
+      if (res.success && Array.isArray(res.results)) {
+        const formatted: ApplicantRecord[] = res.results.map((row) => ({
+          id: String(row.id),
+          createdAt: String(row.created_at),
+          status: (row.status as ApplicantRecord["status"]) || "pending",
+          fullName: String(row.full_name || ""),
+          email: String(row.email || ""),
+          phoneNumber: String(row.phone_number || ""),
+          profileUrl: String(row.profile_url || ""),
+          yearsOfExperience: String(row.years_of_experience || ""),
+          currentRole: String(row.current_role || ""),
+          primaryStack: String(row.primary_stack || "Java"),
+          targetOutcome: String(row.target_outcome || ""),
+          bottleneck: String(row.bottleneck || ""),
+          weeklyHours: String(row.weekly_hours || ""),
+          whyYou: String(row.why_you || ""),
+          notes: String(row.notes || ""),
+        }));
+
+        return NextResponse.json({
+          success: true,
+          source: "cloudflare-d1",
+          count: formatted.length,
+          applicants: formatted,
+        });
+      }
+    } catch (d1Err) {
+      console.warn("[GET /api/apply] Cloudflare D1 fetch error, using fallback:", d1Err);
+    }
+  }
+
   const supabase = getSupabaseServerClient();
 
   if (isSupabaseConfigured && supabase) {
@@ -401,6 +527,48 @@ export async function PATCH(req: NextRequest) {
         { success: false, error: "Invalid ID or status" },
         { status: 400 }
       );
+    }
+
+    if (isCloudflareD1Configured) {
+      try {
+        const updateRes = await executeD1Query(
+          "UPDATE applications SET status = ? WHERE id = ?",
+          [status, id]
+        );
+
+        if (updateRes.success) {
+          const fetchRes = await executeD1Query<Record<string, unknown>>(
+            "SELECT * FROM applications WHERE id = ? LIMIT 1",
+            [id]
+          );
+
+          if (fetchRes.success && fetchRes.results.length > 0) {
+            const row = fetchRes.results[0];
+            return NextResponse.json({
+              success: true,
+              applicant: {
+                id: String(row.id),
+                createdAt: String(row.created_at),
+                status: (row.status as ApplicantRecord["status"]) || status,
+                fullName: String(row.full_name || ""),
+                email: String(row.email || ""),
+                phoneNumber: String(row.phone_number || ""),
+                profileUrl: String(row.profile_url || ""),
+                yearsOfExperience: String(row.years_of_experience || ""),
+                currentRole: String(row.current_role || ""),
+                primaryStack: String(row.primary_stack || "Java"),
+                targetOutcome: String(row.target_outcome || ""),
+                bottleneck: String(row.bottleneck || ""),
+                weeklyHours: String(row.weekly_hours || ""),
+                whyYou: String(row.why_you || ""),
+                notes: String(row.notes || ""),
+              },
+            });
+          }
+        }
+      } catch (d1Err) {
+        console.warn("[PATCH /api/apply] Cloudflare D1 update error:", d1Err);
+      }
     }
 
     const supabase = getSupabaseServerClient();
